@@ -1,0 +1,33 @@
+# secrets: never commit
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets/
+
+# dependencies and build output
+/node_modules
+/.next/
+/out/
+/coverage
+/dist
+/build
+*.tsbuildinfo
+next-env.d.ts
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# local test output
+/measurements/*.local.*
+/working/*
+!/working/.gitkeep
