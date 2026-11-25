@@ -14,23 +14,30 @@ async function getResponseStream(
   url: string,
   model: string,
   apiKey: string,
+  path: string = "/v1/chat/completions",
+  maxTokens: number = 200,
+  reasoningEffort: string = "",
 ) {
+  // Header minimal: header kustom memicu preflight CORS dan tidak perlu di sini.
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     "Authorization": `Bearer ${apiKey}`,
-    "HTTP-Referer": "https://amica.arbius.ai",
-    "X-Title": "Amica",
   };
 
-  const res = await fetch(`${url}/v1/chat/completions`, {
+  const body: Record<string, unknown> = {
+    model,
+    messages,
+    stream: true,
+    max_tokens: maxTokens,
+  };
+  if (reasoningEffort) {
+    body.reasoning_effort = reasoningEffort;
+  }
+
+  const res = await fetch(`${url}${path}`, {
     headers: headers,
     method: "POST",
-    body: JSON.stringify({
-      model,
-      messages,
-      stream: true,
-      max_tokens: 200,
-    }),
+    body: JSON.stringify(body),
   });
 
   const reader = res.body?.getReader();
@@ -99,7 +106,15 @@ export async function getOpenAiChatResponseStream(messages: Message[]) {
   const apiKey = getApiKey("openai_apikey");
   const url = config("openai_url");
   const model = config("openai_model");
-  return getResponseStream(messages, url, model, apiKey);
+  return getResponseStream(
+    messages,
+    url,
+    model,
+    apiKey,
+    config("openai_chat_path"),
+    parseInt(config("openai_max_tokens"), 10) || 200,
+    config("openai_reasoning_effort"),
+  );
 }
 
 export async function getOpenAiVisionChatResponse(messages: Message[],) {

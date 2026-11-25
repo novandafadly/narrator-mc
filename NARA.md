@@ -38,12 +38,54 @@ pengembang Amica.
 | Tahap | Isi | Status |
 |---|---|---|
 | 1 | Dasar: Amica jalan, avatar contoh, echo, tanpa API key | Selesai (diuji di container Linux; belum di Windows) |
-| 2 | LLM dan persona Nara | Belum |
+| 2 | LLM (Gemini) dan persona Nara | Kode siap, diuji dengan server tiruan. Menunggu uji dengan key asli di laptop |
 | 3 | TTS id-ID-GadisNeural | Belum |
 | 4 | STT bahasa Indonesia | Belum |
 | 5 | Push-to-talk, stop suara, tombol audio siap putar | Belum |
 | 6 | Mode tampilan layar kedua | Belum |
 | 7 | Ukur jeda dan laporan akhir | Belum |
+
+## Tahap 2: uji LLM Gemini di laptop
+
+1. Buka `.env.local`. Ganti `NEXT_PUBLIC_CHATBOT_BACKEND=echo` menjadi `chatgpt`.
+2. Aktifkan blok "Tahap 2" (hapus `#`) dan isi `NEXT_PUBLIC_OPENAI_APIKEY`
+   dengan key Anda. Jangan menempelkan key ke chat atau commit.
+3. Lihat nama model yang tersedia, lalu isi `NEXT_PUBLIC_OPENAI_MODEL`:
+
+```powershell
+npm run nara:models
+```
+
+4. Uji kecepatan dan kepatuhan aturan (8 pertanyaan, hasil tersimpan di
+   `measurements/llm-test.local.json`, tidak ter-commit):
+
+```powershell
+npm run nara:llm-test
+```
+
+Skrip menandai jawaban yang lebih dari 3 kalimat, memakai markdown atau emoji,
+atau memuat angka di luar 17, 18, dan 2026. Pertanyaan jebakan (nama direktur,
+jadwal, laba perusahaan) dan pertanyaan SARA harus dinilai manual: Nara harus
+mengaku tidak tahu atau menolak dengan halus.
+
+Persona Nara ada di `src/nara/persona.json`.
+Jika model menolak `reasoning_effort`, kosongkan variabel itu. Jika jawaban
+kosong atau terpotong, naikkan `NEXT_PUBLIC_OPENAI_MAX_TOKENS`
+(model "berpikir" bisa memakai kuota token untuk berpikir).
+
+## Catatan temuan tahap 2
+
+- Server dev Amica menulis seluruh konfigurasi, termasuk API key, ke
+  `src/features/externalAPI/dataHandlerStorage/*.json`. Di commit upstream dan
+  tahap 1 file itu terlacak git. Sekarang di-ignore dan dibuat otomatis oleh
+  `npm run dev` (hook `predev`), supaya key tidak ter-commit.
+- Jalur Gemini: endpoint kompatibel OpenAI
+  `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`.
+  Amica dimodifikasi agar path, `max_tokens`, dan `reasoning_effort` bisa diatur,
+  dan header kustom `HTTP-Referer`/`X-Title` dibuang.
+- Belum diverifikasi dengan key asli: apakah browser boleh memanggil endpoint ini
+  langsung (CORS), kuota tingkat gratis, dan syarat penggunaan data tingkat
+  gratis. Hasil pencarian untuk nama model dan kuota saling bertentangan.
 
 ## Catatan temuan tahap 1
 
