@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/nara-init-storage.mjs",
     "dev": "npm run generate:paths && npm run build:workers && next dev",
     "build": "npm run generate:paths && npm run build:workers && next build",
     "build:workers": "npm run build:worker:generateMeshBVH",
@@ -16,7 +17,9 @@
     "act": "act -j test",
     "tauri": "tauri",
     "generate:paths": "npx node scripts/generate_paths.js",
-    "splash": "cp ./public/splashscreen.html out/"
+    "splash": "cp ./public/splashscreen.html out/",
+    "nara:models": "node scripts/nara-list-models.mjs",
+    "nara:llm-test": "node scripts/nara-llm-test.mjs"
   },
   "dependencies": {
     "@charcoal-ui/icons": "^3.15.0",
