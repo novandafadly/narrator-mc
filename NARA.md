@@ -73,6 +73,42 @@ Jika model menolak `reasoning_effort`, kosongkan variabel itu. Jika jawaban
 kosong atau terpotong, naikkan `NEXT_PUBLIC_OPENAI_MAX_TOKENS`
 (model "berpikir" bisa memakai kuota token untuk berpikir).
 
+## Hasil uji LLM (laptop Windows, tingkat gratis Gemini, 26 Nov 2026)
+
+| Model | Error | Kata pertama (median) | Catatan |
+|---|---|---|---|
+| `gemini-2.5-flash` | 8 dari 8 | - | HTTP 404: tidak tersedia untuk akun baru |
+| `gemini-3.8-flash` | 4 dari 6 yang terlihat (output terpotong) | 6,5 dan 58 detik (2 yang berhasil) | HTTP 503 "high demand" |
+| `gemini-3.5-flash-lite` | 8 dari 8 | - | Gagal semua |
+| `gemini-3.5-flash` | 5 dari 8 | 1,6 detik | Tidak andal |
+| `gemini-3.7-flash` | 5 dari 8 | 57,7 detik | Tidak andal |
+| `gemini-3.1-flash-lite` (3 putaran) | 6 dari 24 (25%) | 1,34 detik | 5 dari 18 jawaban berhasil lebih lambat dari 3 detik (68, 32, 11, 7, 3,9 detik) |
+
+Kesimpulan: kualitas persona lulus (menolak politik/agama dengan halus, tidak
+mengarang nama, jadwal, atau angka). Keandalan dan kecepatan tingkat gratis
+Gemini belum memadai untuk target 3 detik: hanya sekitar 13 dari 24 permintaan
+(54%) berhasil dalam 3 detik, baru dari sisi LLM. Mitigasi: LLM cadangan dengan
+permintaan "hedged" (di bawah), dan audio segmen siap putar.
+
+## LLM cadangan (hedged)
+
+Jika `NEXT_PUBLIC_OPENAI_FALLBACK_*` diisi, permintaan chat dikirim ke LLM utama;
+jika gagal (mis. 503) atau belum menjawab setelah `NEXT_PUBLIC_OPENAI_HEDGE_MS`
+(bawaan 1500 ms), permintaan kedua dikirim ke cadangan. Yang pertama mulai
+menjawab menang, yang lain dibatalkan. Logika ada di
+`src/features/chat/hedge.ts` (diuji unit) dan `src/features/chat/openAiChat.ts`.
+Contoh cadangan: Groq (format OpenAI), lihat `.env.example`.
+
+## Skrip bantu Windows
+
+- `start-nara.cmd`: klik dua kali untuk menjalankan Nara (memakai Node portabel
+  di `Documents\node-v22.23.5-win-x64` bila ada).
+- `update-nara.cmd`: mengunduh versi terbaru dari GitHub tanpa menyentuh
+  `.env.local` dan `node_modules`; menjalankan `npm ci` hanya jika
+  `package-lock.json` berubah. File ini tidak memperbarui dirinya sendiri.
+- Keduanya belum diuji di Windows. Cadangan manual: unduh ZIP `main` lagi dan salin
+  filenya ke folder proyek, kecuali `.env.local` dan `node_modules`.
+
 ## Catatan temuan tahap 2
 
 - Server dev Amica menulis seluruh konfigurasi, termasuk API key, ke

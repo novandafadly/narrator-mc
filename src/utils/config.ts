@@ -39,6 +39,13 @@ export const defaults = {
   openai_chat_path: process.env.NEXT_PUBLIC_OPENAI_CHAT_PATH ?? '/v1/chat/completions',
   openai_max_tokens: process.env.NEXT_PUBLIC_OPENAI_MAX_TOKENS ?? '200',
   openai_reasoning_effort: process.env.NEXT_PUBLIC_OPENAI_REASONING_EFFORT ?? '',
+  // Nara: LLM cadangan. Dipakai jika utama gagal (mis. 503) atau belum menjawab setelah hedge_ms.
+  openai_fallback_url: process.env.NEXT_PUBLIC_OPENAI_FALLBACK_URL ?? '',
+  openai_fallback_path: process.env.NEXT_PUBLIC_OPENAI_FALLBACK_PATH ?? '/v1/chat/completions',
+  openai_fallback_apikey: process.env.NEXT_PUBLIC_OPENAI_FALLBACK_APIKEY ?? '',
+  openai_fallback_model: process.env.NEXT_PUBLIC_OPENAI_FALLBACK_MODEL ?? '',
+  openai_fallback_reasoning_effort: process.env.NEXT_PUBLIC_OPENAI_FALLBACK_REASONING_EFFORT ?? '',
+  openai_hedge_ms: process.env.NEXT_PUBLIC_OPENAI_HEDGE_MS ?? '1500',
   llamacpp_url: process.env.NEXT_PUBLIC_LLAMACPP_URL ?? 'http://127.0.0.1:8080',
   llamacpp_stop_sequence: process.env.NEXT_PUBLIC_LLAMACPP_STOP_SEQUENCE ?? '(End)||[END]||Note||***||You:||User:||</s>',
   ollama_url: process.env.NEXT_PUBLIC_OLLAMA_URL ?? 'http://localhost:11434',
