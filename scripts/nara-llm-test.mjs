@@ -1,6 +1,7 @@
 // Uji LLM untuk Nara: kecepatan, kepatuhan aturan, dan jebakan karangan fakta.
 // Membaca konfigurasi dari .env.local (atau variabel lingkungan). Tidak mencetak API key.
-// Pakai:  node scripts/nara-llm-test.mjs [--runs=1]
+// Pakai:  node scripts/nara-llm-test.mjs [fallback] [--runs=1]
+//   "fallback" menguji LLM cadangan (NEXT_PUBLIC_OPENAI_FALLBACK_*), mis. Groq.
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,16 +24,18 @@ function loadEnv(file) {
 }
 
 const env = { ...loadEnv(join(root, ".env.local")), ...process.env };
-const url = env.NEXT_PUBLIC_OPENAI_URL;
-const path = env.NEXT_PUBLIC_OPENAI_CHAT_PATH || "/v1/chat/completions";
-const model = env.NEXT_PUBLIC_OPENAI_MODEL;
-const apiKey = env.NEXT_PUBLIC_OPENAI_APIKEY;
+const fb = process.argv.includes("fallback");
+const P = fb ? "NEXT_PUBLIC_OPENAI_FALLBACK_" : "NEXT_PUBLIC_OPENAI_";
+const url = env[P + "URL"];
+const path = env[P + "CHAT_PATH"] || env[P + "PATH"] || "/v1/chat/completions";
+const model = env[P + "MODEL"];
+const apiKey = env[P + "APIKEY"];
 const maxTokens = parseInt(env.NEXT_PUBLIC_OPENAI_MAX_TOKENS || "200", 10) || 200;
-const reasoning = env.NEXT_PUBLIC_OPENAI_REASONING_EFFORT || "";
+const reasoning = env[P + "REASONING_EFFORT"] || "";
 const runs = parseInt((process.argv.find((a) => a.startsWith("--runs=")) || "--runs=1").split("=")[1], 10) || 1;
 
 if (!url || !model || !apiKey) {
-  console.error("Isi NEXT_PUBLIC_OPENAI_URL, NEXT_PUBLIC_OPENAI_MODEL, NEXT_PUBLIC_OPENAI_APIKEY di .env.local");
+  console.error("Isi URL, MODEL, dan APIKEY (prefiks NEXT_PUBLIC_OPENAI_ atau NEXT_PUBLIC_OPENAI_FALLBACK_) di .env.local");
   process.exit(1);
 }
 
