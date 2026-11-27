@@ -1,0 +1,39 @@
+# Jalankan dari folder deploy/:  docker compose up -d --build
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      args:
+        PROXY_TOKEN: ${PROXY_TOKEN:?isi PROXY_TOKEN di deploy/.env}
+        LLM_MODEL: ${LLM_MODEL:-gemini-3.1-flash-lite}
+        LLM_PATH: ${LLM_PATH:-/v1beta/openai/chat/completions}
+        LLM_REASONING_EFFORT: ${LLM_REASONING_EFFORT:-}
+        FALLBACK_MODEL: ${FALLBACK_MODEL:-}
+        FALLBACK_PATH: ${FALLBACK_PATH:-/openai/v1/chat/completions}
+        FALLBACK_REASONING_EFFORT: ${FALLBACK_REASONING_EFFORT:-low}
+        MAX_TOKENS: ${MAX_TOKENS:-1024}
+        HEDGE_MS: ${HEDGE_MS:-1500}
+    restart: unless-stopped
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    env_file:
+      - .env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

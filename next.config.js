@@ -71,7 +71,8 @@ module.exports = withPWA(nextConfig);
 
 const { withSentryConfig } = require("@sentry/nextjs");
 
-module.exports = withSentryConfig(module.exports, {
+// Nara: Sentry upstream dimatikan. Aktifkan hanya dengan NARA_SENTRY=true.
+const naraSentryOptions = {
   // For all available options, see:
   // https://github.com/getsentry/sentry-webpack-plugin#options
 
@@ -109,4 +110,8 @@ module.exports = withSentryConfig(module.exports, {
   // https://docs.sentry.io/product/crons/
   // https://vercel.com/docs/cron-jobs
   automaticVercelMonitors: true,
-});
+};
+
+module.exports = process.env.NARA_SENTRY === "true"
+  ? withSentryConfig(module.exports, naraSentryOptions)
+  : module.exports;
