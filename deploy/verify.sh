@@ -39,7 +39,7 @@ if [ "$LIVE" = "--live" ]; then
   PATHP="$(grep -E '^LLM_PATH=' "$DIR/.env" 2>/dev/null | head -1 | cut -d= -f2- | tr -d "'\"")"; PATHP="${PATHP:-/v1beta/openai/chat/completions}"
   LBODY="{\"model\":\"${MODEL:-gemini-3.1-flash-lite}\",\"messages\":[{\"role\":\"user\",\"content\":\"Jawab satu kata: halo\"}],\"stream\":true,\"max_tokens\":64}"
   echo "--- live: 1 permintaan ke LLM lewat proxy"
-  OUT="$(curl -s --max-time 60 -o /tmp/nara-live.out -w '%{http_code} ttfb=%{time_starttransfer}s total=%{time_total}s' -X POST -H "Authorization: Bearer $PROXY_TOKEN" "$SITE/llm$PATHP" -d "$LBODY")"
+  OUT="$(curl -s --max-time 60 -o /tmp/nara-live.out -w '%{http_code} ttfb=%{time_starttransfer}s total=%{time_total}s' -X POST -H "Authorization: Bearer $PROXY_TOKEN" -H 'Content-Type: application/json' "$SITE/llm$PATHP" -d "$LBODY")"
   echo "live: $OUT"
   head -c 200 /tmp/nara-live.out | tr '\n' ' '; echo; rm -f /tmp/nara-live.out
   case "$OUT" in 200*) pass=$((pass+1));; *) fail=$((fail+1));; esac
