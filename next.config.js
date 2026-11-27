@@ -1,4 +1,3 @@
-const CopyPlugin = require("copy-webpack-plugin");
 const withPWA = require("@ducanh2912/next-pwa").default({
   dest: "public",
 });
@@ -17,6 +16,9 @@ const nextConfig = {
   },
   optimizeFonts: false,
   webpack: (config, { webpack, buildId }) => {
+    // devDependency: hanya dibutuhkan saat build, tidak ada setelah npm prune --omit=dev
+    const CopyPlugin = require("copy-webpack-plugin");
+
     // See https://webpack.js.org/configuration/resolve/#resolvealias
     config.resolve.alias = {
       ...config.resolve.alias,
