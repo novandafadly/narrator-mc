@@ -109,6 +109,19 @@ Contoh cadangan: Groq (format OpenAI), lihat `.env.example`.
 - Keduanya belum diuji di Windows. Cadangan manual: unduh ZIP `main` lagi dan salin
   filenya ke folder proyek, kecuali `.env.local` dan `node_modules`.
 
+## Dua jalur kerja
+
+| | Jalur GitHub (kode) | Jalur Server (OCI) |
+|---|---|---|
+| Pemilik | Sesi pengembang ini (lingkungan cloud, tanpa Docker daemon) | Sesi dengan shell di VM OCI |
+| Mengerjakan | Kode aplikasi, `Dockerfile`, `Caddyfile`, tes, tahap 3 sampai 7, PR dan merge | Deploy, Docker, firewall, sertifikat, `verify.sh`, ukur waktu nyata |
+| Tidak boleh | Mengklaim sesuatu jalan di OCI tanpa laporan dari server | `git push`, mengubah kode, atau melihat rahasia |
+| Prompt | (sesi ini) | `deploy/SERVER-PROMPT.md` |
+
+Serah terima: dari server ke GitHub berupa laporan teks (galat persis dan usulan diff);
+dari GitHub ke server berupa `git pull && docker compose up -d --build`.
+`deploy/verify.sh` adalah pemeriksaan bersama yang sama-sama bisa dijalankan.
+
 ## Menjalankan di server (OCI), key hanya di server
 
 Lihat `deploy/README.md`. Caddy di depan aplikasi memberi HTTPS dan password,
