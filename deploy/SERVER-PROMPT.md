@@ -9,8 +9,13 @@ konteks ada di sini.
 Kamu bekerja di sisi server untuk men-deploy "Nara": co-host AI berbahasa Indonesia
 berbasis Amica (MIT), untuk acara Workshop AI di depan jajaran direksi. Kodenya ada
 di https://github.com/novandafadly/narrator-mc, branch `main`, folder `deploy/`.
-Baca `deploy/README.md`, `deploy/Caddyfile`, `deploy/Dockerfile`, dan
-`deploy/docker-compose.yml` sebelum mengubah apa pun. Jangan menebak: periksa dulu.
+Mulai dari sini, sebelum langkah apa pun: jika folder `~/narrator-mc` belum ada,
+clone dulu dengan `git clone https://github.com/novandafadly/narrator-mc.git ~/narrator-mc`
+(repo publik, tanpa login; pasang `git` lebih dulu jika belum ada). Itu aman karena
+hanya membuat folder baru. Lalu baca `deploy/README.md`, `deploy/Caddyfile`,
+`deploy/Dockerfile`, dan `deploy/docker-compose.yml` sebelum mengubah apa pun.
+Jangan menebak: periksa dulu. Jalankan semua perintah dari `~/narrator-mc` kecuali
+disebut lain.
 
 ## Hasil akhir
 
@@ -49,7 +54,7 @@ tidak bisa kamu lakukan. Minta pengguna melakukannya dan memastikan.
    (`ss -tlnp`), dan `sudo iptables -S INPUT`. Jika port 80 atau 443 sudah dipakai
    layanan lain, berhenti dan tanyakan pengguna.
 1. **Pasang Docker** jika belum ada (lihat README langkah 3). Cek `docker compose version`.
-2. **Ambil kode dan siapkan `.env`**: `git clone`, `cp deploy/.env.example deploy/.env`,
+2. **Siapkan `.env`** (kode sudah di-clone di atas): `cp deploy/.env.example deploy/.env`,
    `chmod 600 deploy/.env`. Minta pengguna mengisi rahasia, lalu periksa isian kosong
    dengan perintah `awk` di atas. Isian wajib: `SITE_ADDRESS`, `ACME_EMAIL`, `BASIC_HASH`,
    `PROXY_TOKEN`, `GEMINI_API_KEY`. `GROQ_API_KEY` dan `FALLBACK_MODEL` opsional (kosong berarti
