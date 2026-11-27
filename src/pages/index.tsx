@@ -439,19 +439,7 @@ export default function Home() {
               />
             )}
 
-            <MenuButton
-              large={isVRHeadset}
-              icon={ShareIcon}
-              href="/share"
-              target={isTauri() ? '' : '_blank'}
-              label="share"
-            />
-            <MenuButton
-              large={isVRHeadset}
-              icon={CloudArrowDownIcon}
-              href="/import"
-              label="import"
-            />
+            {/* Nara: tombol share/import dihapus (bergantung pada layanan upstream). */}
 
             { showSubconciousText ? (
               <MenuButton

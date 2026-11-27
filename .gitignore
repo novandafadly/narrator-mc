@@ -34,3 +34,6 @@ Thumbs.db
 
 # data runtime server dev Amica: berisi konfigurasi termasuk API key
 /src/features/externalAPI/dataHandlerStorage/*.json
+
+# Nara deploy: rahasia server
+/deploy/.env

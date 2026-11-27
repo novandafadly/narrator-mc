@@ -1,0 +1,85 @@
+# Nara di server: HTTPS, password untuk halaman, dan proxy ke LLM/STT.
+# API key asli hanya ada di file deploy/.env di server ini. Browser tidak pernah melihatnya.
+#
+# Cara kerja:
+# - Halaman (/) dijaga password (Basic Auth).
+# - /llm, /llm2, /stt hanya menerima permintaan yang membawa PROXY_TOKEN
+#   (token itu tertanam di halaman, yang hanya bisa dibuka setelah login).
+#   Caddy mengganti token dengan API key asli sebelum meneruskan ke penyedia.
+# - /api/* (route dev Amica yang bisa membocorkan konfigurasi) diblokir.
+
+{
+	email {$ACME_EMAIL}
+}
+
+# Alamat situs: domain, atau <ip-dengan-strip>.sslip.io. Contoh lokal/uji: ":8080".
+{$SITE_ADDRESS} {
+	# Jangan tulis isi permintaan (prompt dan suara audiens) ke log.
+	log {
+		level WARN
+	}
+
+	@api path /api/*
+	handle @api {
+		respond "Not found" 404
+	}
+
+	# Gemini (format kompatibel OpenAI). Browser memanggil /llm/v1beta/openai/chat/completions.
+	handle_path /llm/* {
+		@ok header Authorization "Bearer {$PROXY_TOKEN}"
+		handle @ok {
+			reverse_proxy {$GEMINI_UPSTREAM:https://generativelanguage.googleapis.com} {
+				header_up Host {upstream_hostport}
+				header_up Authorization "Bearer {$GEMINI_API_KEY}"
+				header_up -Origin
+				header_up -Referer
+				header_up -Cookie
+				flush_interval -1
+			}
+		}
+		respond "Unauthorized" 401
+	}
+
+	# Groq sebagai LLM cadangan. Browser memanggil /llm2/openai/v1/chat/completions.
+	handle_path /llm2/* {
+		@ok header Authorization "Bearer {$PROXY_TOKEN}"
+		handle @ok {
+			reverse_proxy {$GROQ_UPSTREAM:https://api.groq.com} {
+				header_up Host {upstream_hostport}
+				header_up Authorization "Bearer {$GROQ_API_KEY}"
+				header_up -Origin
+				header_up -Referer
+				header_up -Cookie
+				flush_interval -1
+			}
+		}
+		respond "Unauthorized" 401
+	}
+
+	# STT (tahap 4): Amica memanggil /stt/v1/audio/transcriptions, diteruskan ke
+	# /openai/v1/audio/transcriptions di Groq.
+	handle_path /stt/* {
+		@ok header Authorization "Bearer {$PROXY_TOKEN}"
+		handle @ok {
+			rewrite * /openai{uri}
+			reverse_proxy {$GROQ_UPSTREAM:https://api.groq.com} {
+				header_up Host {upstream_hostport}
+				header_up Authorization "Bearer {$GROQ_API_KEY}"
+				header_up -Origin
+				header_up -Referer
+				header_up -Cookie
+				flush_interval -1
+			}
+		}
+		respond "Unauthorized" 401
+	}
+
+	# Semua yang lain: aplikasi Nara, di belakang password.
+	handle {
+		basic_auth {
+			{$BASIC_USER} {$BASIC_HASH}
+		}
+		encode zstd gzip
+		reverse_proxy {$APP_UPSTREAM:app:3000}
+	}
+}

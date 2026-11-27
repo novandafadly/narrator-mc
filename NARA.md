@@ -109,6 +109,20 @@ Contoh cadangan: Groq (format OpenAI), lihat `.env.example`.
 - Keduanya belum diuji di Windows. Cadangan manual: unduh ZIP `main` lagi dan salin
   filenya ke folder proyek, kecuali `.env.local` dan `node_modules`.
 
+## Menjalankan di server (OCI), key hanya di server
+
+Lihat `deploy/README.md`. Caddy di depan aplikasi memberi HTTPS dan password,
+lalu meneruskan `/llm`, `/llm2`, dan `/stt` ke Gemini dan Groq sambil menyisipkan
+API key dari `deploy/.env`. Browser tidak pernah memegang key asli. Diuji dengan
+Caddy asli dan upstream tiruan; `Dockerfile` dan Let's Encrypt belum diuji.
+
+Perubahan yang menyertainya:
+- Telemetri Sentry milik pengembang Amica dimatikan. Di build produksi aslinya
+  Sentry aktif dan akan mengirim error ke akun mereka.
+- Halaman `share` dan `import` (bergantung pada layanan Supabase dan store
+  upstream) dihapus. Build produksi gagal tanpa kredensial Supabase upstream.
+- `.dockerignore` kini mengecualikan `.env*` agar rahasia tidak masuk image.
+
 ## Catatan temuan tahap 2
 
 - Server dev Amica menulis seluruh konfigurasi, termasuk API key, ke

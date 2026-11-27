@@ -34,3 +34,13 @@ next-env.d.ts
 
 working/*
 !working/.gitkeep
+
+# Nara: jangan pernah menyalin rahasia atau artefak lokal ke dalam image
+.env
+.env.*
+!.env.example
+deploy/.env
+.git
+.next
+measurements
+src/features/externalAPI/dataHandlerStorage/*.json
