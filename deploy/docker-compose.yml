@@ -24,9 +24,9 @@ services:
     depends_on:
       - app
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - "${HTTP_PUBLISH:-80}:80"
+      - "${HTTPS_PUBLISH:-443}:443"
+      - "${HTTPS_PUBLISH:-443}:443/udp"
     env_file:
       - .env
     volumes:
