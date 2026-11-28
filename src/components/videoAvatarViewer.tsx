@@ -283,6 +283,7 @@ export default function VideoAvatarViewer({
       avatarCtrl.stop();
       const blob = await avatarCtrl.fetchSpeakVideo(TEST_SPEAK_TEXT, {
         url: normalized,
+        emotion: "happy",
       });
       if (blob) {
         stageSync.broadcastSubtitle(TEST_SPEAK_TEXT, true);
@@ -402,7 +403,7 @@ export default function VideoAvatarViewer({
 
               <div className="mt-2.5 space-y-2">
                 <label className="block text-[11px] font-medium text-slate-300">
-                  URL Server MuseTalk HTTPS (ubah live tanpa rebuild)
+                  URL Server Video Avatar — Ditto / MuseTalk (ubah live)
                 </label>
                 <input
                   type="url"
@@ -448,7 +449,8 @@ export default function VideoAvatarViewer({
                   >
                     {health.ok ? (
                       <span>
-                        Siap · {health.avatar || "nara"}
+                        Siap · {health.engine ? `${health.engine} · ` : ""}
+                        {health.avatar || "nara"}
                         {health.gpu ? ` · ${health.gpu}` : ""}
                         {typeof health.latencyMs === "number" ? ` · ${health.latencyMs}ms` : ""}
                       </span>

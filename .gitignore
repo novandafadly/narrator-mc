@@ -37,3 +37,10 @@ Thumbs.db
 
 # Nara deploy: rahasia server
 /deploy/.env
+
+# GPU server (Ditto TalkingHead runtime & checkpoints)
+__pycache__/
+*.pyc
+/gpu-server/ditto-talkinghead/
+/gpu-server/nara_assets/
+

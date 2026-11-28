@@ -227,12 +227,16 @@ export class Chat {
           continue;
         }
 
-        // Photorealistic Video Avatar mode (MuseTalk v1.5 + Edge TTS):
+        // Photorealistic Video Avatar mode (Ditto TalkingHead / MuseTalk v1.5 + Edge TTS):
         // Dispatch each sentence to POST /speak in parallel and play sequentially in processSpeakJobs().
         if (this.videoAvatar.isActive() && config("tts_muted") !== "true") {
           const text = cleanTalk({ ...ttsJob.screenplay.talk }).message.trim();
           const videoPromise = text
-            ? this.videoAvatar.fetchSpeakVideo(text).catch((err) => {
+            ? this.videoAvatar
+                .fetchSpeakVideo(text, {
+                  emotion: ttsJob.screenplay.expression,
+                })
+                .catch((err) => {
                 console.error("Video Avatar /speak error:", err);
                 this.alert?.error(
                   "Server Video Avatar gagal merespons",

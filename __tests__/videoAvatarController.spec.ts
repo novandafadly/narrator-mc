@@ -54,13 +54,19 @@ describe("VideoAvatarController", () => {
     global.fetch = jest.fn(async () => ({
       ok: true,
       status: 200,
-      json: async () => ({ status: "ok", avatar: "nara_hijab", gpu: "Tesla T4" }),
+      json: async () => ({
+        status: "ok",
+        engine: "ditto-trt",
+        avatar: "nara_hijab",
+        gpu: "Tesla T4",
+      }),
     })) as any;
 
     const ctrl = new VideoAvatarController();
     const health = await ctrl.checkHealth("https://demo.trycloudflare.com/");
 
     expect(health.ok).toBe(true);
+    expect(health.engine).toBe("ditto-trt");
     expect(health.avatar).toBe("nara_hijab");
     expect(health.gpu).toBe("Tesla T4");
     expect(global.fetch).toHaveBeenCalledWith(
@@ -85,7 +91,7 @@ describe("VideoAvatarController", () => {
     expect(errRes.error).toContain("503");
   });
 
-  test("fetchSpeakVideo posts text, voice, and fps and returns mp4 Blob", async () => {
+  test("fetchSpeakVideo posts text, voice, fps, and optional emotion and returns mp4 Blob", async () => {
     const fakeBlob = new Blob(["mp4data"], { type: "video/mp4" });
     global.fetch = jest.fn(async () => ({
       ok: true,
@@ -98,6 +104,7 @@ describe("VideoAvatarController", () => {
       url: "https://demo.trycloudflare.com",
       voice: "id-ID-GadisNeural",
       fps: 25,
+      emotion: "Surprised",
     });
 
     expect(result).toBe(fakeBlob);
@@ -110,6 +117,7 @@ describe("VideoAvatarController", () => {
           text: "Halo Bapak dan Ibu!",
           voice: "id-ID-GadisNeural",
           fps: 25,
+          emotion: "surprised",
         }),
       }),
     );

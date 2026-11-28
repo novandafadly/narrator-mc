@@ -44,3 +44,4 @@ deploy/.env
 .next
 measurements
 src/features/externalAPI/dataHandlerStorage/*.json
+gpu-server

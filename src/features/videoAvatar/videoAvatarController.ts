@@ -3,6 +3,7 @@ import { config } from "@/utils/config";
 export interface VideoAvatarHealth {
   ok: boolean;
   status?: string;
+  engine?: string;
   avatar?: string;
   gpu?: string;
   latencyMs?: number;
@@ -157,6 +158,7 @@ export class VideoAvatarController {
       const result: VideoAvatarHealth = {
         ok,
         status: data?.status ?? "ok",
+        engine: data?.engine,
         avatar: data?.avatar,
         gpu: data?.gpu,
         latencyMs,
@@ -194,6 +196,7 @@ export class VideoAvatarController {
     options?: {
       voice?: string;
       fps?: number;
+      emotion?: string;
       url?: string;
       signal?: AbortSignal;
     },
@@ -218,16 +221,21 @@ export class VideoAvatarController {
     options?.signal?.addEventListener("abort", onExternalAbort, { once: true });
 
     try {
+      const payload: Record<string, any> = {
+        text: cleanText,
+        voice: options?.voice || config("video_avatar_voice") || "id-ID-GadisNeural",
+        fps: options?.fps ?? 25,
+      };
+      if (options?.emotion) {
+        payload.emotion = options.emotion.toLowerCase();
+      }
+
       const res = await fetch(buildSpeakUrl(baseUrl), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          text: cleanText,
-          voice: options?.voice || config("video_avatar_voice") || "id-ID-GadisNeural",
-          fps: options?.fps ?? 25,
-        }),
+        body: JSON.stringify(payload),
         signal: controller.signal,
       });
 
