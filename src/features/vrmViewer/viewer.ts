@@ -234,8 +234,11 @@ export class Viewer {
     }) as THREE.WebGLRenderer;
     this.renderer = renderer;
 
-    renderer.setClearColor(0x000000, 0)
+    renderer.setClearColor(0x000000, 0);
     renderer.shadowMap.enabled = false;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     renderer.setSize(width, height);
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -277,14 +280,24 @@ export class Viewer {
     const scene = new THREE.Scene();
     this.scene = scene;
 
-    // Temp Disable : WebXR -> 1.2
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
-    directionalLight.position.set(1.0, 1.0, 1.0).normalize();
-    directionalLight.castShadow = false;
-    scene.add(directionalLight);
+    // Nara: 3-point studio lighting (key + fill + rim) with soft hemisphere fill
+    const keyLight = new THREE.DirectionalLight(0xfff5eb, 1.35);
+    keyLight.position.set(1.5, 2.2, 2.0);
+    keyLight.castShadow = false;
+    scene.add(keyLight);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 2);
-    scene.add(ambientLight);
+    const fillLight = new THREE.DirectionalLight(0xdce8ff, 0.55);
+    fillLight.position.set(-1.8, 1.4, 1.5);
+    fillLight.castShadow = false;
+    scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0xe8f0ff, 0.75);
+    rimLight.position.set(0.0, 2.4, -2.0);
+    rimLight.castShadow = false;
+    scene.add(rimLight);
+
+    const hemiLight = new THREE.HemisphereLight(0xf5f7ff, 0x3a4255, 0.75);
+    scene.add(hemiLight);
 
     scene.add(this.roomBVHHelperGroup);
 
@@ -292,8 +305,8 @@ export class Viewer {
     const camera = new THREE.PerspectiveCamera(20.0, width / height, 0.1, 20.0);
     this.camera = camera;
 
-    // Temp Disable : WebXR y -> -3
-    camera.position.set(0, 8.5, 3.5);
+    // Initial chest-up MC framing position (refined once VRM head/chest bones load)
+    camera.position.set(0, 1.35, 1.85);
 
     const cameraControls = new OrbitControls(camera, renderer.domElement);
     this.cameraControls = cameraControls;
@@ -978,19 +991,33 @@ export class Viewer {
   }
 
   /**
-   * VRMのheadノードを参照してカメラ位置を調整する
+   * VRMのhead・chestノードを参照してMC向けのバストアップ構図にカメラを調整する
    */
   public resetCamera() {
-    const headNode = this.model?.vrm?.humanoid.getNormalizedBoneNode("head");
+    const humanoid = this.model?.vrm?.humanoid;
+    const headNode = humanoid?.getNormalizedBoneNode("head");
 
     if (headNode) {
       const headPos = headNode.getWorldPosition(new THREE.Vector3());
+      const chestNode =
+        humanoid?.getNormalizedBoneNode("upperChest") ||
+        humanoid?.getNormalizedBoneNode("chest");
+      const chestY = chestNode
+        ? chestNode.getWorldPosition(new THREE.Vector3()).y
+        : headPos.y - 0.22;
+
+      // Aim slightly below chin/neck so head + hijab have generous headroom
+      // and the torso sits cleanly above the bottom chat input bar.
+      const targetY = chestY + (headPos.y - chestY) * 0.45;
+      const cameraY = targetY + 0.05;
+      const cameraDistance = 1.85;
+
       this.camera?.position.set(
-        this.camera.position.x,
-        headPos.y,
-        this.camera.position.z,
+        headPos.x,
+        cameraY,
+        headPos.z + cameraDistance,
       );
-      this.cameraControls?.target.set(headPos.x, headPos.y, headPos.z);
+      this.cameraControls?.target.set(headPos.x, targetY, headPos.z);
       this.cameraControls?.update();
     }
   }

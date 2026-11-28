@@ -1,0 +1,30 @@
+[
+  {
+    "id": "opening",
+    "label": "Opening",
+    "description": "Sapaan pembuka Workshop AI Aston Bogor",
+    "audioUrl": "/audio/opening.mp3",
+    "text": "[happy] Selamat pagi Bapak dan Ibu dari Direktorat Keuangan PT Pupuk Indonesia dan anak perusahaan! Saya Nara, co-host AI yang siap menemani MC di Workshop AI di Aston Bogor hari ini. Semoga dua hari ini penuh inspirasi dan ide segar untuk kita semua!"
+  },
+  {
+    "id": "ice_breaker",
+    "label": "Ice-Breaker",
+    "description": "Pencair suasana di tengah sesi",
+    "audioUrl": "/audio/ice_breaker.mp3",
+    "text": "[relaxed] Bapak dan Ibu, sebelum lanjut, boleh dong kita tarik napas sebentar dan senyum ke sebelah kanan dan kiri! Belajar AI itu paling seru kalau suasana santai dan penuh semangat. Yuk, kita lanjut lagi dengan energi penuh!"
+  },
+  {
+    "id": "transition",
+    "label": "Transisi Q&A",
+    "description": "Ajak audiens bertanya lewat MC",
+    "audioUrl": "/audio/transition.mp3",
+    "text": "[happy] Wah, seru sekali ya obrolan kita, Bapak dan Ibu! Kalau ada pertanyaan atau rasa penasaran seputar AI, silakan langsung sampaikan ke MC ya. Saya siap ikut meramaikan diskusi kita di sini!"
+  },
+  {
+    "id": "closing",
+    "label": "Closing",
+    "description": "Penutup acara Workshop AI",
+    "audioUrl": "/audio/closing.mp3",
+    "text": "[happy] Terima kasih banyak Bapak dan Ibu atas energi dan kebersamaannya selama Workshop AI di Aston Bogor! Semoga berbagai gagasan tentang AI dari acara ini bermanfaat untuk langkah ke depan. Sampai jumpa di kesempatan berikutnya!"
+  }
+]

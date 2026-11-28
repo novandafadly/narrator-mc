@@ -74,6 +74,18 @@
 		respond "Unauthorized" 401
 	}
 
+	# TTS cadangan 3D VRM (tahap 3): meneruskan /tts ke route /api/tts di app
+	# sambil tetap menjaga /api/* lainnya tertutup (404).
+	@tts path /tts /tts/
+	handle @tts {
+		@ok header Authorization "Bearer {$PROXY_TOKEN}"
+		handle @ok {
+			rewrite * /api/tts/
+			reverse_proxy {$APP_UPSTREAM:app:3000}
+		}
+		respond "Unauthorized" 401
+	}
+
 	# Semua yang lain: aplikasi Nara, di belakang password.
 	handle {
 		basic_auth {

@@ -13,7 +13,7 @@ export async function openaiWhisper(
   const formData = new FormData();
   formData.append('file', file);
   formData.append('model', config('openai_whisper_model'));
-  formData.append('language', 'en');
+  formData.append('language', config('openai_whisper_language') || 'id');
   if (prompt) {
     formData.append('prompt', prompt);
   }

@@ -4,18 +4,21 @@ import { BasicPage, FormRow, Link, getLinkFromPage } from './common';
 import { updateConfig } from "@/utils/config";
 
 const ttsEngines = [
-  {key: "none",       label: "None"},
-  {key: "elevenlabs", label: "ElevenLabs"},
-  {key: "speecht5",   label: "SpeechT5"},
-  {key: "openai_tts", label: "OpenAI TTS"},
-  {key: "localXTTS",  label: "Alltalk TTS"}, // Our local TTS endpoint (XTTS based)
-  {key: "piper",      label: "Piper"},
-  {key: "coquiLocal", label: "Coqui Local"},
-  {key: "kokoro",     label: "Kokoro"},
+  {key: "none",        label: "None"},
+  {key: "edge_tts",    label: "Edge TTS (id-ID-GadisNeural)"},
+  {key: "browser_tts", label: "Browser Speech (id-ID)"},
+  {key: "elevenlabs",  label: "ElevenLabs"},
+  {key: "speecht5",    label: "SpeechT5"},
+  {key: "openai_tts",  label: "OpenAI TTS / Local Edge-TTS"},
+  {key: "localXTTS",   label: "Alltalk TTS"}, // Our local TTS endpoint (XTTS based)
+  {key: "piper",       label: "Piper"},
+  {key: "coquiLocal",  label: "Coqui Local"},
+  {key: "kokoro",      label: "Kokoro"},
 ];
 
 function idToTitle(id: string): string {
-  return ttsEngines[ttsEngines.findIndex((engine) => engine.key === id)].label;
+  const found = ttsEngines.find((engine) => engine.key === id);
+  return found ? found.label : id;
 }
 
 export function TTSBackendPage({

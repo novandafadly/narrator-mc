@@ -15,6 +15,12 @@ const nextConfig = {
     root: process.env.BASE_PATH || "",
   },
   optimizeFonts: false,
+  async rewrites() {
+    return [
+      { source: "/tts", destination: "/api/tts" },
+      { source: "/tts/", destination: "/api/tts" },
+    ];
+  },
   webpack: (config, { webpack, buildId }) => {
     // devDependency: hanya dibutuhkan saat build, tidak ada setelah npm prune --omit=dev
     const CopyPlugin = require("copy-webpack-plugin");

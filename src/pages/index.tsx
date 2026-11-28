@@ -39,6 +39,7 @@ import { Alert } from "@/components/alert";
 import { UserText } from "@/components/userText";
 import { ChatLog } from "@/components/chatLog";
 import VrmViewer from "@/components/vrmViewer";
+import VideoAvatarViewer from "@/components/videoAvatarViewer";
 import { MessageInputContainer } from "@/components/messageInputContainer";
 import { Introduction } from "@/components/introduction";
 import { ArbiusIntroduction } from "@/components/arbiusIntroduction";
@@ -49,6 +50,8 @@ import { EmbeddedWebcam } from "@/components/embeddedWebcam";
 import { Moshi } from "@/features/moshi/components/Moshi";
 
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
+import { VideoAvatarContext } from "@/features/videoAvatar/videoAvatarContext";
+import { stageSync } from "@/features/stageSync/stageSync";
 import { Message, Role } from "@/features/chat/messages";
 import { ChatContext } from "@/features/chat/chatContext";
 import { AlertContext } from "@/features/alert/alertContext";
@@ -117,6 +120,7 @@ export default function Home() {
   const { t, i18n } = useTranslation();
   const currLang = i18n.resolvedLanguage;
   const { viewer } = useContext(ViewerContext);
+  const { videoAvatar } = useContext(VideoAvatarContext);
   const { alert } = useContext(AlertContext);
   const { chat: bot } = useContext(ChatContext);
   const { amicaLife: amicaLife } = useContext(AmicaLifeContext);
@@ -129,6 +133,13 @@ export default function Home() {
   const [thoughtMessage, setThoughtMessage] = useState("");
   const [shownMessage, setShownMessage] = useState<Role>("system");
   const [subconciousLogs, setSubconciousLogs] = useState<TimestampedPrompt[]>([]);
+
+  // Video Avatar (primary) vs 3D VRM (backup) & second-screen Stage Projector state
+  const [videoAvatarEnabled, setVideoAvatarEnabled] = useState(false);
+  const [stageConnected, setStageConnected] = useState(false);
+  const [stageShowSubtitles, setStageShowSubtitles] = useState(true);
+  const [stageAudioOnProjector, setStageAudioOnProjector] = useState(false);
+  const [vrmOperatorPanelCollapsed, setVrmOperatorPanelCollapsed] = useState(false);
 
   // showContent exists to allow ssr
   // otherwise issues from usage of localStorage and window will occur
@@ -165,6 +176,10 @@ export default function Home() {
       setMuted(config('tts_muted') === 'true');
     }
 
+    setVideoAvatarEnabled(config("video_avatar_enabled") === "true");
+    setStageShowSubtitles(config("stage_show_subtitles") !== "false");
+    setStageAudioOnProjector(config("stage_audio_on_projector") === "true");
+
     setShowArbiusIntroduction(config("show_arbius_introduction") === 'true');
 
     if (config("bg_color") !== '') {
@@ -172,21 +187,104 @@ export default function Home() {
     } else {
       document.body.style.backgroundImage = `url(${config("bg_url")})`;
     }
-    // Temp Disable : WebXR
-    // if (window.navigator.xr && window.navigator.xr.isSessionSupported) {
-    //   let deviceInfo = detectVRHeadset();
-    //   setIsVRHeadset(deviceInfo.isVRDevice);
-
-    //   window.navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
-    //     console.log('ar supported', supported);
-    //     setIsARSupported(supported);
-    //   });
-    //   window.navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
-    //     console.log('vr supported', supported);
-    //     setIsVRSupported(supported);
-    //   });
-    // }
   }, []);
+
+  const broadcastCurrentStageState = (
+    override?: Partial<{
+      videoEnabled: boolean;
+      showSubtitles: boolean;
+      stageAudio: boolean;
+      idleUrl: string;
+      posterUrl: string;
+    }>,
+  ) => {
+    const useVideo = override?.videoEnabled ?? (config("video_avatar_enabled") === "true");
+    const showSubs = override?.showSubtitles ?? (config("stage_show_subtitles") !== "false");
+    const audioOnProj = override?.stageAudio ?? (config("stage_audio_on_projector") === "true");
+
+    const health = videoAvatar.getState().lastHealth;
+    const serverUrl = videoAvatar.getServerUrl();
+    const useRemoteIdle = Boolean(serverUrl && health?.ok && health?.hasIdle);
+    const cacheBust = health?.checkedAt ? `?v=${health.checkedAt}` : "";
+
+    const idleUrl =
+      override?.idleUrl ||
+      (useRemoteIdle
+        ? `${serverUrl}/idle${cacheBust}`
+        : config("video_avatar_idle_url") || "/avatar/nara_idle.mp4");
+    const posterUrl =
+      override?.posterUrl ||
+      (useRemoteIdle
+        ? `${serverUrl}/poster${cacheBust}`
+        : config("video_avatar_poster_url") || "/avatar/nara_poster.jpg");
+
+    stageSync.broadcastState({
+      mode: useVideo ? "video" : "vrm",
+      idleUrl,
+      posterUrl,
+      vrmUrl: config("vrm_url") || "/vrm/AvatarSample_A.vrm",
+      bgColor: config("bg_color") || "#1c2a3a",
+      bgUrl: config("bg_url") || "",
+      showSubtitles: showSubs,
+      stageAudio: audioOnProj,
+    });
+  };
+
+  useEffect(() => {
+    const unsubscribe = stageSync.subscribe((msg) => {
+      if (msg.type === "stage_ping") {
+        setStageConnected(true);
+        stageSync.post({ type: "stage_pong", ts: Date.now() });
+        broadcastCurrentStageState();
+      } else if (msg.type === "stage_pong") {
+        setStageConnected(true);
+        broadcastCurrentStageState();
+      } else if (msg.type === "stage_bye") {
+        setStageConnected(false);
+      }
+    });
+
+    stageSync.post({ type: "stage_ping", ts: Date.now() });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  const switchToVrmMode = async () => {
+    await bot.interrupt();
+    await updateConfig("video_avatar_enabled", "false");
+    setVideoAvatarEnabled(false);
+    broadcastCurrentStageState({ videoEnabled: false });
+  };
+
+  const switchToVideoMode = async () => {
+    await bot.interrupt();
+    await updateConfig("video_avatar_enabled", "true");
+    setVideoAvatarEnabled(true);
+    broadcastCurrentStageState({ videoEnabled: true });
+  };
+
+  const handleToggleStageSubtitles = async () => {
+    const next = !stageShowSubtitles;
+    setStageShowSubtitles(next);
+    await updateConfig("stage_show_subtitles", next ? "true" : "false");
+    broadcastCurrentStageState({ showSubtitles: next });
+  };
+
+  const handleToggleStageAudio = async () => {
+    const next = !stageAudioOnProjector;
+    setStageAudioOnProjector(next);
+    await updateConfig("stage_audio_on_projector", next ? "true" : "false");
+    broadcastCurrentStageState({ stageAudio: next });
+  };
+
+  const handleOpenStageWindow = () => {
+    window.open("/stage/", "nara_stage_projector", "noopener=no");
+    setTimeout(() => {
+      stageSync.post({ type: "stage_ping", ts: Date.now() });
+      broadcastCurrentStageState();
+    }, 800);
+  };
 
   useEffect(() => {
     if (viewer && videoRef.current && showStreamWindow) {
@@ -370,15 +468,126 @@ export default function Home() {
       { config("chatbot_backend") === "moshi" && <Moshi setAssistantText={setAssistantMessage}/>  }
 
       <VrmStoreProvider>
-        <VrmViewer chatMode={showChatMode}/>
+        {videoAvatarEnabled ? (
+          <VideoAvatarViewer
+            controller={videoAvatar}
+            mutedPlayback={stageAudioOnProjector}
+            showOperatorPanel={true}
+            stageConnected={stageConnected}
+            stageShowSubtitles={stageShowSubtitles}
+            stageAudioOnProjector={stageAudioOnProjector}
+            onToggleStageSubtitles={handleToggleStageSubtitles}
+            onToggleStageAudio={handleToggleStageAudio}
+            onOpenStageWindow={handleOpenStageWindow}
+            onSwitchToVrm={switchToVrmMode}
+            onServerUrlChanged={(_url, remoteAssets) =>
+              broadcastCurrentStageState(remoteAssets)
+            }
+          />
+        ) : (
+          <>
+            <VrmViewer chatMode={showChatMode} />
+            {/* Compact top-right operator panel in 3D VRM backup mode */}
+            <div className="fixed right-3 top-3 z-30 flex flex-col items-end">
+              {vrmOperatorPanelCollapsed ? (
+                <button
+                  type="button"
+                  onClick={() => setVrmOperatorPanelCollapsed(false)}
+                  className="flex items-center gap-2 rounded-full border border-white/20 bg-slate-900/80 px-3.5 py-1.5 text-xs font-semibold text-white shadow-lg backdrop-blur-md hover:bg-slate-800/90"
+                >
+                  <span className="h-2.5 w-2.5 rounded-full bg-sky-400" />
+                  <span>Mode 3D VRM (Cadangan)</span>
+                  {stageConnected && (
+                    <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] text-emerald-300">
+                      Stage
+                    </span>
+                  )}
+                </button>
+              ) : (
+                <div className="w-72 max-w-[calc(100vw-1.5rem)] rounded-xl border border-white/15 bg-slate-900/85 p-3 text-xs text-slate-100 shadow-2xl backdrop-blur-md space-y-2">
+                  <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-white/10">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full bg-sky-400" />
+                      <span className="font-bold text-white">Mode 3D VRM (Cadangan)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setVrmOperatorPanelCollapsed(true)}
+                      className="rounded px-2 py-0.5 text-[11px] text-slate-300 hover:bg-white/10 hover:text-white"
+                    >
+                      Sembunyikan
+                    </button>
+                  </div>
+
+                  <p className="text-[11px] text-slate-300">
+                    TTS Aktif: <span className="font-semibold text-white">{config("tts_backend")}</span> (id-ID-GadisNeural)
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={switchToVideoMode}
+                    className="w-full rounded-md bg-sky-600 px-2.5 py-1.5 font-semibold text-white hover:bg-sky-500"
+                  >
+                    Pindah ke Mode Video Avatar (Utama)
+                  </button>
+
+                  <div className="pt-2 border-t border-white/10 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={handleOpenStageWindow}
+                        className="flex-1 rounded-md bg-indigo-600 px-2.5 py-1.5 font-semibold text-white hover:bg-indigo-500"
+                      >
+                        Buka Layar Proyektor (/stage)
+                      </button>
+                      <span
+                        className={clsx(
+                          "rounded px-1.5 py-1 text-[10px] font-semibold",
+                          stageConnected
+                            ? "bg-emerald-500/20 text-emerald-300"
+                            : "bg-slate-700 text-slate-300",
+                        )}
+                      >
+                        {stageConnected ? "Terhubung" : "Offline"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-slate-300">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={stageShowSubtitles}
+                          onChange={handleToggleStageSubtitles}
+                          className="rounded border-slate-500 bg-slate-800 text-indigo-500"
+                        />
+                        <span>Subtitle Proyektor</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={stageAudioOnProjector}
+                          onChange={handleToggleStageAudio}
+                          className="rounded border-slate-500 bg-slate-800 text-indigo-500"
+                        />
+                        <span>Audio di Proyektor</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
         {showSettings && (
           <Settings
             onClickClose={() => setShowSettings(false)}
           />
         )}
       </VrmStoreProvider>
-      
-      <MessageInputContainer isChatProcessing={chatProcessing} />
+
+      <MessageInputContainer
+        isChatProcessing={chatProcessing}
+        isChatSpeaking={chatSpeaking}
+      />
 
       {/* main menu */}
       <div className="absolute z-10 m-2">

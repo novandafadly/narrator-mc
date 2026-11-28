@@ -7,18 +7,19 @@ Browser tidak pernah memegang key asli.
 ## Cara kerja
 
 ```
-Browser ──HTTPS──> Caddy ──> app (Nara, build produksi)        halaman, dijaga password
+Browser ──HTTPS──> Caddy ──> app (Nara, build produksi)        halaman (/ & /stage), dijaga password
                       ├────> Gemini  (/llm)   key asli disisipkan Caddy
                       ├────> Groq    (/llm2)  cadangan LLM
-                      └────> Groq    (/stt)   Whisper, dipakai tahap 4
+                      ├────> Groq    (/stt)   Whisper Bahasa Indonesia
+                      └────> app     (/tts)   Edge TTS id-ID-GadisNeural (cadangan 3D VRM)
 ```
 
-- Halaman dijaga password (Basic Auth).
-- `/llm`, `/llm2`, `/stt` hanya menerima permintaan yang membawa `PROXY_TOKEN`.
+- Halaman (`/` untuk operator & `/stage` untuk proyektor) dijaga password (Basic Auth).
+- `/llm`, `/llm2`, `/stt`, `/tts` hanya menerima permintaan yang membawa `PROXY_TOKEN`.
   Token itu tertanam di halaman, yang hanya bisa dibuka setelah login. Caddy
   menukar token dengan key asli sebelum meneruskan ke penyedia.
 - `/api/*` (route dev Amica yang bisa membocorkan konfigurasi) diblokir.
-- Semua lewat satu alamat, jadi tidak ada masalah CORS.
+- Server Video Avatar (MuseTalk v1.5 + Edge TTS di Colab/GPU cloud) dipanggil langsung lewat HTTPS dari browser dan URL-nya bisa diubah live di panel operator kanan atas tanpa rebuild.
 
 ## Yang dibutuhkan
 
