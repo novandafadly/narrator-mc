@@ -3,6 +3,8 @@ import clsx from "clsx";
 import {
   VideoAvatarController,
   VideoAvatarState,
+  buildIdleUrl,
+  buildPosterUrl,
   normalizeVideoAvatarUrl,
 } from "@/features/videoAvatar/videoAvatarController";
 import { VideoAvatarContext } from "@/features/videoAvatar/videoAvatarContext";
@@ -25,7 +27,7 @@ export interface VideoAvatarViewerProps {
   onToggleStageAudio?: () => void;
   onOpenStageWindow?: () => void;
   onSwitchToVrm?: () => void;
-  onServerUrlChanged?: (url: string) => void;
+  onServerUrlChanged?: (url: string, remoteAssets?: { idleUrl?: string; posterUrl?: string }) => void;
 }
 
 export default function VideoAvatarViewer({
@@ -46,9 +48,6 @@ export default function VideoAvatarViewer({
   const ctx = useContext(VideoAvatarContext);
   const avatarCtrl = controller ?? ctx.videoAvatar;
 
-  const resolvedIdleUrl = idleUrl || config("video_avatar_idle_url") || "/avatar/nara_idle.mp4";
-  const resolvedPosterUrl = posterUrl || config("video_avatar_poster_url") || "/avatar/nara_poster.jpg";
-
   const idleVideoRef = useRef<HTMLVideoElement | null>(null);
   const speakVideoRef = useRef<HTMLVideoElement | null>(null);
   const activeObjectUrlRef = useRef<string | null>(null);
@@ -68,6 +67,22 @@ export default function VideoAvatarViewer({
   const [avatarState, setAvatarState] = useState<VideoAvatarState>(() =>
     avatarCtrl.getState(),
   );
+
+  const activeServerUrl = normalizeVideoAvatarUrl(urlInput);
+  const useRemoteIdle = Boolean(
+    !idleUrl && activeServerUrl && avatarState.lastHealth?.ok && avatarState.lastHealth?.hasIdle,
+  );
+  const cacheBust = avatarState.lastHealth?.checkedAt ? `?v=${avatarState.lastHealth.checkedAt}` : "";
+  const resolvedIdleUrl =
+    idleUrl ||
+    (useRemoteIdle
+      ? `${buildIdleUrl(activeServerUrl)}${cacheBust}`
+      : config("video_avatar_idle_url") || "/avatar/nara_idle.mp4");
+  const resolvedPosterUrl =
+    posterUrl ||
+    (useRemoteIdle
+      ? `${buildPosterUrl(activeServerUrl)}${cacheBust}`
+      : config("video_avatar_poster_url") || "/avatar/nara_poster.jpg");
 
   // Reset asset error flags when URLs change
   useEffect(() => {
@@ -260,11 +275,18 @@ export default function VideoAvatarViewer({
     if (normalized) {
       await updateConfig("video_avatar_enabled", "true");
     }
-    onServerUrlChanged?.(normalized);
 
     setCheckingHealth(true);
     try {
-      await avatarCtrl.checkHealth(normalized);
+      const healthRes = await avatarCtrl.checkHealth(normalized);
+      const remoteAssets =
+        normalized && healthRes.ok && healthRes.hasIdle
+          ? {
+              idleUrl: `${buildIdleUrl(normalized)}?v=${healthRes.checkedAt}`,
+              posterUrl: `${buildPosterUrl(normalized)}?v=${healthRes.checkedAt}`,
+            }
+          : undefined;
+      onServerUrlChanged?.(normalized, remoteAssets);
     } finally {
       setCheckingHealth(false);
     }

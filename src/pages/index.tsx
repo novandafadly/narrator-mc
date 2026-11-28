@@ -194,16 +194,34 @@ export default function Home() {
       videoEnabled: boolean;
       showSubtitles: boolean;
       stageAudio: boolean;
+      idleUrl: string;
+      posterUrl: string;
     }>,
   ) => {
     const useVideo = override?.videoEnabled ?? (config("video_avatar_enabled") === "true");
     const showSubs = override?.showSubtitles ?? (config("stage_show_subtitles") !== "false");
     const audioOnProj = override?.stageAudio ?? (config("stage_audio_on_projector") === "true");
 
+    const health = videoAvatar.getState().lastHealth;
+    const serverUrl = videoAvatar.getServerUrl();
+    const useRemoteIdle = Boolean(serverUrl && health?.ok && health?.hasIdle);
+    const cacheBust = health?.checkedAt ? `?v=${health.checkedAt}` : "";
+
+    const idleUrl =
+      override?.idleUrl ||
+      (useRemoteIdle
+        ? `${serverUrl}/idle${cacheBust}`
+        : config("video_avatar_idle_url") || "/avatar/nara_idle.mp4");
+    const posterUrl =
+      override?.posterUrl ||
+      (useRemoteIdle
+        ? `${serverUrl}/poster${cacheBust}`
+        : config("video_avatar_poster_url") || "/avatar/nara_poster.jpg");
+
     stageSync.broadcastState({
       mode: useVideo ? "video" : "vrm",
-      idleUrl: config("video_avatar_idle_url") || "/avatar/nara_idle.mp4",
-      posterUrl: config("video_avatar_poster_url") || "/avatar/nara_poster.jpg",
+      idleUrl,
+      posterUrl,
       vrmUrl: config("vrm_url") || "/vrm/AvatarSample_A.vrm",
       bgColor: config("bg_color") || "#1c2a3a",
       bgUrl: config("bg_url") || "",
@@ -462,7 +480,9 @@ export default function Home() {
             onToggleStageAudio={handleToggleStageAudio}
             onOpenStageWindow={handleOpenStageWindow}
             onSwitchToVrm={switchToVrmMode}
-            onServerUrlChanged={() => broadcastCurrentStageState()}
+            onServerUrlChanged={(_url, remoteAssets) =>
+              broadcastCurrentStageState(remoteAssets)
+            }
           />
         ) : (
           <>

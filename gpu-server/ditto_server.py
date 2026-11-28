@@ -17,8 +17,6 @@ Optimizations for <3s response latency:
   4. Applies fade_in/fade_out with fade_type="s" so clips cross-fade smoothly with nara_idle.mp4.
 """
 
-from __future__ import annotations
-
 import argparse
 import asyncio
 import logging
@@ -508,7 +506,7 @@ class DittoEngine:
 
 def create_app(engine: Any) -> Any:
     """Creates the FastAPI app exposing /health, /speak, /idle, and /poster."""
-    from fastapi import FastAPI, HTTPException
+    from fastapi import Body, FastAPI, HTTPException
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import FileResponse, Response
     from pydantic import BaseModel, Field
@@ -562,7 +560,7 @@ def create_app(engine: Any) -> Any:
         )
 
     @app.post("/speak")
-    async def speak(req: SpeakRequest) -> Response:
+    async def speak(req: SpeakRequest = Body(...)) -> Response:
         clean_text = req.text.strip()
         if not clean_text:
             raise HTTPException(status_code=400, detail="Text must not be empty")

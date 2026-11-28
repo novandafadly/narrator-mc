@@ -6,6 +6,7 @@ export interface VideoAvatarHealth {
   engine?: string;
   avatar?: string;
   gpu?: string;
+  hasIdle?: boolean;
   latencyMs?: number;
   error?: string;
   checkedAt: number;
@@ -47,6 +48,16 @@ export function buildHealthUrl(baseUrl: string): string {
 export function buildSpeakUrl(baseUrl: string): string {
   const normalized = normalizeVideoAvatarUrl(baseUrl);
   return normalized ? `${normalized}/speak` : "";
+}
+
+export function buildIdleUrl(baseUrl: string): string {
+  const normalized = normalizeVideoAvatarUrl(baseUrl);
+  return normalized ? `${normalized}/idle` : "";
+}
+
+export function buildPosterUrl(baseUrl: string): string {
+  const normalized = normalizeVideoAvatarUrl(baseUrl);
+  return normalized ? `${normalized}/poster` : "";
 }
 
 /**
@@ -161,6 +172,7 @@ export class VideoAvatarController {
         engine: data?.engine,
         avatar: data?.avatar,
         gpu: data?.gpu,
+        hasIdle: Boolean(data?.has_idle),
         latencyMs,
         error: ok ? undefined : `Status server tidak siap: ${String(data?.status)}`,
         checkedAt: Date.now(),
