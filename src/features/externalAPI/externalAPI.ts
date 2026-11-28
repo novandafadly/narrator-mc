@@ -6,29 +6,22 @@ import {
 } from "../amicaLife/eventHandler";
 import { Message } from "../chat/messages";
 
-export const configUrl = new URL(
-  `${process.env.NEXT_PUBLIC_DEVELOPMENT_BASE_URL}/api/dataHandler`,
-);
+const devBaseUrl =
+  process.env.NEXT_PUBLIC_DEVELOPMENT_BASE_URL || "http://localhost:3000";
+
+export const configUrl = new URL(`${devBaseUrl}/api/dataHandler`);
 configUrl.searchParams.append("type", "config");
 
-export const userInputUrl = new URL(
-  `${process.env.NEXT_PUBLIC_DEVELOPMENT_BASE_URL}/api/dataHandler`,
-);
+export const userInputUrl = new URL(`${devBaseUrl}/api/dataHandler`);
 userInputUrl.searchParams.append("type", "userInputMessages");
 
-export const subconsciousUrl = new URL(
-  `${process.env.NEXT_PUBLIC_DEVELOPMENT_BASE_URL}/api/dataHandler`,
-);
+export const subconsciousUrl = new URL(`${devBaseUrl}/api/dataHandler`);
 subconsciousUrl.searchParams.append("type", "subconscious");
 
-export const logsUrl = new URL(
-  `${process.env.NEXT_PUBLIC_DEVELOPMENT_BASE_URL}/api/dataHandler`,
-);
+export const logsUrl = new URL(`${devBaseUrl}/api/dataHandler`);
 logsUrl.searchParams.append("type", "logs");
 
-export const chatLogsUrl = new URL(
-  `${process.env.NEXT_PUBLIC_DEVELOPMENT_BASE_URL}/api/dataHandler`,
-);
+export const chatLogsUrl = new URL(`${devBaseUrl}/api/dataHandler`);
 chatLogsUrl.searchParams.append("type", "chatLogs");
 
 // Cached server config

@@ -413,19 +413,36 @@ export class Model {
   /**
    * 音声を再生し、リップシンクを行う
    */
-  public async speak(buffer: ArrayBuffer, screenplay: Screenplay) {
+  public async speak(
+    buffer: ArrayBuffer,
+    screenplay: Screenplay,
+    options?: { muted?: boolean },
+  ) {
     this.emoteController?.playEmotion(screenplay.expression);
     await new Promise((resolve) => {
-      this._lipSync?.playFromArrayBuffer(buffer, () => {
-        resolve(true);
-      });
+      this._lipSync
+        ?.playFromArrayBuffer(
+          buffer,
+          () => {
+            resolve(true);
+          },
+          options,
+        )
+        .catch((err) => {
+          console.error("LipSync playback failed:", err);
+          resolve(false);
+        });
     });
+  }
+
+  public stopSpeaking() {
+    this._lipSync?.stop();
   }
 
   public update(delta: number): void {
     if (this._lipSync) {
-      const { volume } = this._lipSync.update();
-      this.emoteController?.lipSync("aa", volume);
+      const { vowels } = this._lipSync.update();
+      this.emoteController?.lipSyncVowels(vowels);
     }
 
     this.emoteController?.update(delta);

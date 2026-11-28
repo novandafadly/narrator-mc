@@ -18,8 +18,8 @@ export const AssistantText = ({ message }: { message: string }) => {
   });
 
   return (
-    <div className="fixed bottom-0 left-0 mb-20 w-full">
-      <div className="mx-auto max-w-4xl w-full px-4 md:px-16">
+    <div className="fixed bottom-0 left-0 mb-28 z-10 w-full pointer-events-none">
+      <div className="mx-auto max-w-4xl w-full px-4 md:px-16 pointer-events-auto">
         <div className="backdrop-blur-lg rounded-lg">
           <div className="bg-white/70 rounded-lg backdrop-blur-lg shadow-lg">
             <div className="px-8 pr-1 py-3 bg-rose/90 rounded-t-lg text-white font-bold tracking-wider">

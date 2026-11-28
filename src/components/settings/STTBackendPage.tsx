@@ -4,14 +4,16 @@ import { BasicPage, FormRow, getLinkFromPage, Link } from './common';
 import { updateConfig } from "@/utils/config";
 
 const sttEngines = [
-  {key: "none",            label: "None"},
+  {key: "none",            label: "None (Web Speech id-ID)"},
+  {key: "browser_speech",  label: "Web Speech API (id-ID)"},
+  {key: "whisper_openai",  label: "Whisper (Groq / OpenAI /stt)"},
   {key: "whisper_browser", label: "Whisper (Browser)"},
-  {key: "whisper_openai",  label: "Whisper (OpenAI)"},
   {key: "whispercpp",      label: "Whisper.cpp"},
 ];
 
 function idToTitle(id: string): string {
-  return sttEngines[sttEngines.findIndex((engine) => engine.key === id)].label;
+  const found = sttEngines.find((engine) => engine.key === id);
+  return found ? found.label : id;
 }
 
 export function STTBackendPage({

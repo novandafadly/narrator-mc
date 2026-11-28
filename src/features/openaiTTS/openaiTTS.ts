@@ -4,8 +4,11 @@ export async function openaiTTS(
   message: string,
 ) {
   const apiKey = config("openai_tts_apikey");
-  if (!apiKey) {
-    throw new Error("Invalid OpenAI TTS API Key");
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (apiKey) {
+    headers["Authorization"] = `Bearer ${apiKey}`;
   }
 
   try {
@@ -16,10 +19,7 @@ export async function openaiTTS(
         input: message,
         voice: config("openai_tts_voice"),
       }),
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-      },
+      headers,
     });
     if (! res.ok) {
       console.error(res);

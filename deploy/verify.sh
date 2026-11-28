@@ -28,6 +28,7 @@ chk "/llm tanpa token"                  "$(code -X POST "$SITE/llm/v1beta/openai
 chk "/llm token salah"                  "$(code -X POST -H 'Authorization: Bearer salah' "$SITE/llm/v1beta/openai/chat/completions" -d "$BODY")" 401
 chk "/llm2 tanpa token"                 "$(code -X POST "$SITE/llm2/openai/v1/chat/completions" -d "$BODY")" 401
 chk "/stt tanpa token"                  "$(code -X POST "$SITE/stt/v1/audio/transcriptions" -d x)" 401
+chk "/tts tanpa token"                  "$(code -X POST -H 'Content-Type: application/json' "$SITE/tts" -d '{"text":"tes"}')" 401
 
 case "$SITE" in https://*)
   # tanpa -k: gagal jika sertifikat tidak valid
