@@ -209,9 +209,9 @@ export const Settings = ({
       const file = files[0];
       if (!file) return;
 
-      const file_type = file.name.split(".").pop();
+      const file_type = file.name.split(".").pop()?.toLowerCase();
 
-      if (file_type === "vrm") {
+      if (file_type === "vrm" || file_type === "glb") {
         vrmListAddFile(file, viewer);
       }
 
@@ -899,7 +899,7 @@ export const Settings = ({
       <input
         type="file"
         className="hidden"
-        accept=".vrm"
+        accept=".vrm,.glb"
         ref={vrmFileInputRef}
         onChange={handleChangeVrmFile}
       />

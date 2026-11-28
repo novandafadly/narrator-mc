@@ -68,8 +68,17 @@ export function CharacterModelPage({
                   alt={vrm.url}
                   width="160"
                   height="93"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (!img.src.endsWith("/vrm/thumb-placeholder.jpg")) {
+                      img.src = "/vrm/thumb-placeholder.jpg";
+                    }
+                  }}
                   className="m-0 rounded mx-4 pt-0 pb-0 pl-0 pr-0 shadow-sm shadow-black hover:shadow-md hover:shadow-black rounded-4 transition-all bg-gray-100 hover:bg-white active:bg-gray-100"
                 />
+                <div className="mt-1.5 text-xs font-medium text-gray-700 truncate max-w-[160px] mx-4">
+                  {vrm.url.split("/").pop()}
+                </div>
             </button>
           )}
         </div>
@@ -77,7 +86,7 @@ export function CharacterModelPage({
           className="rounded-t-none text-lg ml-4 px-8 shadow-lg bg-secondary hover:bg-secondary-hover active:bg-secondary-active"
           onClick={handleClickOpenVrmFile}
         >
-          {t("Load VRM")}
+          {t("Load VRM / GLB")}
         </TextButton>
       </BasicPage>
   

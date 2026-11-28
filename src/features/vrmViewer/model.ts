@@ -18,12 +18,15 @@ import { OptimizedGLTFLoader } from '@/utils/gltfOptimizer';
 import { GLTFAnalyzer } from '@/utils/gltfAnalyzer';
 import { TransparencyOptimizer, checkAndOptimizeTransparency } from '@/utils/transparencyOptimizer';
 import { config } from "@/utils/config";
+import { GlbAvatarController } from "./glbAvatarController";
 
 /**
  * 3Dキャラクターを管理するクラス
  */
 export class Model {
   public vrm?: VRM | null;
+  public glbScene?: THREE.Group | null;
+  public glbController?: GlbAvatarController;
   public mixer?: THREE.AnimationMixer;
   public emoteController?: EmoteController;
   public proceduralAnimation?: ProceduralAnimation;
@@ -36,6 +39,10 @@ export class Model {
   constructor(lookAtTargetParent: THREE.Object3D) {
     this._lookAtTargetParent = lookAtTargetParent;
     this._lipSync = new LipSync(new AudioContext());
+  }
+
+  public getSceneRoot(): THREE.Object3D | null {
+    return this.vrm?.scene ?? this.glbScene ?? null;
   }
 
   public async loadVRM(
@@ -171,6 +178,17 @@ export class Model {
           */
 
           const vrm = (this.vrm = gltf.userData.vrm);
+          if (!vrm) {
+            this.glbScene = gltf.scene;
+            this.glbScene.name = "GLBAvatarRoot";
+            this.glbController = new GlbAvatarController(this.glbScene);
+            this.mixer = new THREE.AnimationMixer(this.glbScene);
+            resolve();
+            return;
+          }
+
+          this.glbScene = null;
+          this.glbController = undefined;
           vrm.scene.name = "VRMRoot";
 
           VRMUtils.removeUnnecessaryVertices(gltf.scene);
@@ -238,11 +256,12 @@ export class Model {
   }
 
   public setTransparency(opacity: number) {
-    if (! this.vrm) {
+    const root = this.getSceneRoot();
+    if (!root) {
       return;
     }
 
-    this.vrm.scene.traverse((obj: any) => {
+    root.traverse((obj: any) => {
       obj.frustumCulled = false;
 
       if (obj.isMesh) {
@@ -266,6 +285,11 @@ export class Model {
       VRMUtils.deepDispose(this.vrm.scene);
       this.vrm = null;
     }
+    if (this.glbScene) {
+      VRMUtils.deepDispose(this.glbScene);
+      this.glbScene = null;
+    }
+    this.glbController = undefined;
   }
 
   /**
@@ -408,6 +432,7 @@ export class Model {
 
   public async playEmotion(expression: string) {
     this.emoteController?.playEmotion(expression);
+    this.glbController?.playEmotion(expression);
   }
 
   /**
@@ -419,6 +444,7 @@ export class Model {
     options?: { muted?: boolean },
   ) {
     this.emoteController?.playEmotion(screenplay.expression);
+    this.glbController?.playEmotion(screenplay.expression);
     await new Promise((resolve) => {
       this._lipSync
         ?.playFromArrayBuffer(
@@ -437,15 +463,18 @@ export class Model {
 
   public stopSpeaking() {
     this._lipSync?.stop();
+    this.glbController?.resetLipSync();
   }
 
   public update(delta: number): void {
     if (this._lipSync) {
       const { vowels } = this._lipSync.update();
       this.emoteController?.lipSyncVowels(vowels);
+      this.glbController?.lipSyncVowels(vowels);
     }
 
     this.emoteController?.update(delta);
+    this.glbController?.update(delta);
     this.mixer?.update(delta);
     this.vrm?.update(delta);
     if (config("animation_procedural") === "true") {

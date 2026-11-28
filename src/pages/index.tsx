@@ -222,7 +222,7 @@ export default function Home() {
       mode: useVideo ? "video" : "vrm",
       idleUrl,
       posterUrl,
-      vrmUrl: config("vrm_url") || "/vrm/AvatarSample_A.vrm",
+      vrmUrl: config("vrm_url") || "/avatar/model.glb",
       bgColor: config("bg_color") || "#1c2a3a",
       bgUrl: config("bg_url") || "",
       showSubtitles: showSubs,

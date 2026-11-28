@@ -21,7 +21,7 @@ services:
         TTS_BACKEND: ${TTS_BACKEND:-edge_tts}
         STT_BACKEND: ${STT_BACKEND:-browser_speech}
         WHISPER_MODEL: ${WHISPER_MODEL:-whisper-large-v3-turbo}
-        VRM_URL: ${VRM_URL:-/vrm/AvatarSample_A.vrm}
+        VRM_URL: ${VRM_URL:-/avatar/model.glb}
     restart: unless-stopped
     expose:
       - "3000"

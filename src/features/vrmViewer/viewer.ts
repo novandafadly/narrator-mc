@@ -699,7 +699,7 @@ export class Viewer {
     url: string,
     setLoadingProgress: (progress: string) => void,
   ) {
-    if (this.model?.vrm) {
+    if (this.model?.getSceneRoot()) {
       this.unloadVRM();
     }
     // Temp Disable : WebXR
@@ -710,7 +710,8 @@ export class Viewer {
     await this.model.loadVRM(url, setLoadingProgress);
     // Temp Disable : WebXR
     // setLoadingProgress("VRM loaded");
-    if (!this.model?.vrm) return;
+    const sceneRoot = this.model?.getSceneRoot();
+    if (!sceneRoot) return;
 
     // Temp Disable : WebXR
     // build bvh
@@ -739,10 +740,10 @@ export class Viewer {
       this.scene!.add(this.modelBVHHelper);
     }
 
-    this.scene!.add(this.model.vrm.scene);
+    this.scene!.add(sceneRoot);
 
-    // TODO since poses still work for procedural animation, we can use this to debug
-    if (config("animation_procedural") !== "true") {
+    // Load VRM/Mixamo idle clip only for VRM models; GLB avatars use GlbAvatarController
+    if (this.model.vrm && config("animation_procedural") !== "true") {
       // Temp Disable : WebXR
       // setLoadingProgress("Loading animation");
       const animation =
@@ -753,6 +754,8 @@ export class Viewer {
         await this.model.loadAnimation(animation);
         this.model.update(0);
       }
+    } else if (this.model.glbController) {
+      this.model.update(0);
     }
 
     // Temp Disable : WebXR
@@ -781,8 +784,9 @@ export class Viewer {
   }
 
   public unloadVRM(): void {
-    if (this.model?.vrm) {
-      this.scene!.remove(this.model.vrm.scene);
+    const sceneRoot = this.model?.getSceneRoot();
+    if (sceneRoot) {
+      this.scene!.remove(sceneRoot);
       // TODO if we don't dispose and create a new geometry then it seems like the performance gets slower
       {
         const geometry = this.modelMeshHelper?.geometry;
@@ -991,24 +995,35 @@ export class Viewer {
   }
 
   /**
-   * VRMのhead・chestノードを参照してMC向けのバストアップ構図にカメラを調整する
+   * VRM・GLBのhead・chestノードを参照してMC向けのバストアップ構図にカメラを調整する
    */
   public resetCamera() {
+    let headPos: THREE.Vector3 | null = null;
+    let chestY: number | null = null;
+
     const humanoid = this.model?.vrm?.humanoid;
     const headNode = humanoid?.getNormalizedBoneNode("head");
 
     if (headNode) {
-      const headPos = headNode.getWorldPosition(new THREE.Vector3());
+      headPos = headNode.getWorldPosition(new THREE.Vector3());
       const chestNode =
         humanoid?.getNormalizedBoneNode("upperChest") ||
         humanoid?.getNormalizedBoneNode("chest");
-      const chestY = chestNode
+      chestY = chestNode
         ? chestNode.getWorldPosition(new THREE.Vector3()).y
         : headPos.y - 0.22;
+    } else if (this.model?.glbController) {
+      headPos = this.model.glbController.getHeadWorldPosition(new THREE.Vector3());
+      const chestPos = this.model.glbController.getChestWorldPosition(new THREE.Vector3());
+      if (headPos) {
+        chestY = chestPos ? chestPos.y : headPos.y - 0.26;
+      }
+    }
 
+    if (headPos && chestY !== null) {
       // Aim slightly below chin/neck so head + hijab have generous headroom
       // and the torso sits cleanly above the bottom chat input bar.
-      const targetY = chestY + (headPos.y - chestY) * 0.45;
+      const targetY = chestY + (headPos.y - chestY) * 0.55;
       const cameraY = targetY + 0.05;
       const cameraDistance = 1.85;
 

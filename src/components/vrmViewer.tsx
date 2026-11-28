@@ -32,13 +32,14 @@ export default function VrmViewer({ chatMode }: { chatMode: boolean }) {
 
           try {
             const currentVrm = getCurrentVrm();
-            if (!currentVrm) {
+            const targetUrl = currentVrm?.url || config("vrm_url");
+            if (!targetUrl) {
               setIsLoading(true);
               resolve(false);
             } else {
               // Temp Disable : WebXR
               // await viewer.loadScenario(config('scenario_url'));
-              await viewer.loadVrm(buildUrl(currentVrm.url),
+              await viewer.loadVrm(buildUrl(targetUrl),
               (progress) => { console.log(`loading model ${progress}`);}
               );
               resolve(true);
@@ -62,7 +63,7 @@ export default function VrmViewer({ chatMode }: { chatMode: boolean }) {
             if (isTauri()) invoke("close_splashscreen");
           });
 
-        // Replace VRM with Drag and Drop
+        // Replace VRM/GLB with Drag and Drop
         canvas.addEventListener("dragover", function (event) {
           event.preventDefault();
         });
@@ -80,12 +81,10 @@ export default function VrmViewer({ chatMode }: { chatMode: boolean }) {
             return;
           }
 
-          const file_type = file.name.split(".").pop();
-          if (file_type === "vrm") {
+          const file_type = file.name.split(".").pop()?.toLowerCase();
+          if (file_type === "vrm" || file_type === "glb") {
             vrmListAddFile(file, viewer);
-          }/* else if (file_type === "glb") {
-            viewer.loadRoom(URL.createObjectURL(file));
-          }*/
+          }
         });
       }
     },

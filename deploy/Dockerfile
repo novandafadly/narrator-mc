@@ -25,7 +25,7 @@ ARG VIDEO_AVATAR_VOICE=id-ID-GadisNeural
 ARG TTS_BACKEND=edge_tts
 ARG STT_BACKEND=browser_speech
 ARG WHISPER_MODEL=whisper-large-v3-turbo
-ARG VRM_URL=/vrm/AvatarSample_A.vrm
+ARG VRM_URL=/avatar/model.glb
 
 # Variabel NEXT_PUBLIC_* tertanam saat build. URL dibuat relatif (/llm, /llm2, /stt, /tts)
 # sehingga image tidak bergantung pada nama domain.
