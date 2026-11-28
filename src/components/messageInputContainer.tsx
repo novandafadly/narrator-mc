@@ -1,5 +1,5 @@
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 // necessary because of VAD in MessageInput
 const DynamicMessageInput = dynamic(() =>
@@ -9,15 +9,15 @@ const DynamicMessageInput = dynamic(() =>
 );
 
 /**
- * Provides text input and voice input
- *
- * Automatically send when speech recognition is completed,
- * and disable input while generating response text
+ * Provides text input, voice input (Web Speech id-ID & Groq Whisper /stt),
+ * Stop button, Push-to-Talk, and ready-to-play MC segments.
  */
 export const MessageInputContainer = ({
   isChatProcessing,
+  isChatSpeaking = false,
 }: {
   isChatProcessing: boolean;
+  isChatSpeaking?: boolean;
 }) => {
   const [userMessage, setUserMessage] = useState("");
 
@@ -32,6 +32,7 @@ export const MessageInputContainer = ({
       userMessage={userMessage}
       setUserMessage={setUserMessage}
       isChatProcessing={isChatProcessing}
+      isChatSpeaking={isChatSpeaking}
       onChangeUserMessage={(e) => setUserMessage(e.target.value)}
     />
   );

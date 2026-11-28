@@ -37,13 +37,13 @@ pengembang Amica.
 
 | Tahap | Isi | Status |
 |---|---|---|
-| 1 | Dasar: Amica jalan, avatar contoh, echo, tanpa API key | Selesai (diuji di container Linux; belum di Windows) |
-| 2 | LLM (Gemini) dan persona Nara | Kode siap, diuji dengan server tiruan. Menunggu uji dengan key asli di laptop |
-| 3 | TTS id-ID-GadisNeural | Belum |
-| 4 | STT bahasa Indonesia | Belum |
-| 5 | Push-to-talk, stop suara, tombol audio siap putar | Belum |
-| 6 | Mode tampilan layar kedua | Belum |
-| 7 | Ukur jeda dan laporan akhir | Belum |
+| 1 | Dasar: Amica jalan, avatar contoh, echo, tanpa API key | Selesai |
+| 2 | LLM (Gemini + fallback Groq hedged) dan persona Nara | Selesai |
+| 3 | Video Avatar (MuseTalk v1.5 + Edge TTS) + TTS cadangan 3D VRM `id-ID-GadisNeural` (`/tts`) | Kode siap & lulus unit test + build produksi |
+| 4 | STT bahasa Indonesia (Web Speech API `id-ID` & Groq Whisper `/stt`) | Kode siap & lulus unit test + build produksi |
+| 5 | Push-to-talk (Spasi), tombol Stop (Esc), segmen siap putar (Opening/Ice-Breaker/Transisi/Closing) | Kode siap & lulus unit test + build produksi |
+| 6 | Mode tampilan layar kedua (`/stage` via `BroadcastChannel`) | Kode siap & lulus unit test + build produksi |
+| 7 | Ukur jeda nyata di server OCI & laporan akhir | Menunggu uji end-to-end di OCI + GPU cloud |
 
 ## Tahap 2: uji LLM Gemini di laptop
 

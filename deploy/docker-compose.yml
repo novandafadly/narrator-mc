@@ -14,6 +14,14 @@ services:
         FALLBACK_REASONING_EFFORT: ${FALLBACK_REASONING_EFFORT:-low}
         MAX_TOKENS: ${MAX_TOKENS:-1024}
         HEDGE_MS: ${HEDGE_MS:-1500}
+        VIDEO_AVATAR_URL: ${VIDEO_AVATAR_URL:-}
+        VIDEO_AVATAR_ENABLED: ${VIDEO_AVATAR_ENABLED:-}
+        VIDEO_AVATAR_IDLE_URL: ${VIDEO_AVATAR_IDLE_URL:-/avatar/nara_idle.mp4}
+        VIDEO_AVATAR_VOICE: ${VIDEO_AVATAR_VOICE:-id-ID-GadisNeural}
+        TTS_BACKEND: ${TTS_BACKEND:-edge_tts}
+        STT_BACKEND: ${STT_BACKEND:-browser_speech}
+        WHISPER_MODEL: ${WHISPER_MODEL:-whisper-large-v3-turbo}
+        VRM_URL: ${VRM_URL:-/vrm/AvatarSample_A.vrm}
     restart: unless-stopped
     expose:
       - "3000"

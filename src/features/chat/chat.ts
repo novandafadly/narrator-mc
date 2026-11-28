@@ -31,6 +31,11 @@ import { speecht5 } from "@/features/speecht5/speecht5";
 import { openaiTTS } from "@/features/openaiTTS/openaiTTS";
 import { localXTTSTTS } from "@/features/localXTTS/localXTTS";
 import { kokoro } from "../kokoro/kokoro";
+import { edgeTTS } from "@/features/edgeTTS/edgeTTS";
+import { speakWithBrowserTTS, stopBrowserTTS } from "@/features/browserTTS/browserTTS";
+import { VideoAvatarController } from "@/features/videoAvatar/videoAvatarController";
+import { videoAvatarController } from "@/features/videoAvatar/videoAvatarContext";
+import { stageSync } from "@/features/stageSync/stageSync";
 
 import { AmicaLife } from "@/features/amicaLife/amicaLife";
 
@@ -47,6 +52,8 @@ import { loadVRMAnimation } from '@/lib/VRMAnimation/loadVRMAnimation';
 
 type Speak = {
   audioBuffer: ArrayBuffer | null;
+  videoPromise?: Promise<Blob | null>;
+  browserTtsText?: string;
   screenplay: Screenplay;
   streamIdx: number;
 };
@@ -58,10 +65,13 @@ type TTSJob = {
 
 export class Chat {
   public initialized: boolean;
+  private loopsStarted: boolean = false;
 
   public amicaLife?: AmicaLife;
   public viewer?: Viewer;
   public alert?: Alert;
+  public videoAvatar: VideoAvatarController = videoAvatarController;
+  private activeTtsControllers = new Set<AbortController>();
 
   public setChatLog?: (messageLog: Message[]) => void;
   public setUserMessage?: (message: string) => void;
@@ -141,9 +151,12 @@ export class Chat {
     this.setChatProcessing = setChatProcessing;
     this.setChatSpeaking = setChatSpeaking;
 
-    // these will run forever
-    this.processTtsJobs();
-    this.processSpeakJobs();
+    // these will run forever (guard so React re-init does not duplicate loops)
+    if (!this.loopsStarted) {
+      this.loopsStarted = true;
+      this.processTtsJobs();
+      this.processSpeakJobs();
+    }
 
     this.updateAwake();
     this.initialized = true;
@@ -214,9 +227,61 @@ export class Chat {
           continue;
         }
 
-        const audioBuffer = await this.fetchAudio(ttsJob.screenplay.talk);
+        // Photorealistic Video Avatar mode (Ditto TalkingHead / MuseTalk v1.5 + Edge TTS):
+        // Dispatch each sentence to POST /speak in parallel and play sequentially in processSpeakJobs().
+        if (this.videoAvatar.isActive() && config("tts_muted") !== "true") {
+          const text = cleanTalk({ ...ttsJob.screenplay.talk }).message.trim();
+          const videoPromise = text
+            ? this.videoAvatar
+                .fetchSpeakVideo(text, {
+                  emotion: ttsJob.screenplay.expression,
+                })
+                .catch((err) => {
+                console.error("Video Avatar /speak error:", err);
+                this.alert?.error(
+                  "Server Video Avatar gagal merespons",
+                  `${err?.message || err}. Gunakan tombol "Pindah ke Mode 3D VRM (Cadangan)" jika perlu.`,
+                );
+                return null;
+              })
+            : Promise.resolve(null);
+
+          this.speakJobs.enqueue({
+            audioBuffer: null,
+            videoPromise,
+            screenplay: ttsJob.screenplay,
+            streamIdx: ttsJob.streamIdx,
+          });
+          continue;
+        }
+
+        // 3D VRM fallback mode: Browser SpeechSynthesis directly
+        if (config("tts_backend") === "browser_tts" && config("tts_muted") !== "true") {
+          const text = cleanTalk({ ...ttsJob.screenplay.talk }).message.trim();
+          this.speakJobs.enqueue({
+            audioBuffer: null,
+            browserTtsText: text || undefined,
+            screenplay: ttsJob.screenplay,
+            streamIdx: ttsJob.streamIdx,
+          });
+          continue;
+        }
+
+        const audioBuffer = await this.fetchAudio({ ...ttsJob.screenplay.talk });
+        if (ttsJob.streamIdx !== this.currentStreamIdx) {
+          continue;
+        }
+        // If edge_tts failed and returned null while not muted, degrade gracefully to browser speech
+        const fallbackBrowserText =
+          !audioBuffer &&
+          config("tts_backend") === "edge_tts" &&
+          config("tts_muted") !== "true"
+            ? cleanTalk({ ...ttsJob.screenplay.talk }).message.trim()
+            : undefined;
+
         this.speakJobs.enqueue({
           audioBuffer,
+          browserTtsText: fallbackBrowserText || undefined,
           screenplay: ttsJob.screenplay,
           streamIdx: ttsJob.streamIdx,
         });
@@ -237,7 +302,16 @@ export class Chat {
           continue;
         }
 
-        if ((window as any).chatvrm_latency_tracker) {
+        let videoBlob: Blob | null = null;
+        if (speak.videoPromise) {
+          videoBlob = await speak.videoPromise;
+          if (speak.streamIdx !== this.currentStreamIdx) {
+            console.log("skipping video speak after interrupt");
+            continue;
+          }
+        }
+
+        if (typeof window !== "undefined" && (window as any).chatvrm_latency_tracker) {
           if ((window as any).chatvrm_latency_tracker.active) {
             const ms =
               +new Date() - (window as any).chatvrm_latency_tracker.start;
@@ -247,11 +321,29 @@ export class Chat {
         }
 
         this.bubbleMessage("assistant", speak.screenplay.text);
+        stageSync.broadcastSubtitle(speak.screenplay.text, true);
 
-        if (speak.audioBuffer) {
-          this.setChatSpeaking!(true);
-          await this.viewer!.model?.speak(speak.audioBuffer, speak.screenplay);
-          this.setChatSpeaking!(false);
+        if (videoBlob) {
+          this.setChatSpeaking?.(true);
+          stageSync.broadcastVideoPlay(videoBlob, speak.screenplay.text);
+          await this.videoAvatar.playBlob(videoBlob);
+          this.setChatSpeaking?.(false);
+          this.isAwake() ? this.updateAwake() : null;
+        } else if (speak.audioBuffer) {
+          this.setChatSpeaking?.(true);
+          stageSync.broadcastVrmSpeak(speak.audioBuffer, speak.screenplay);
+          const muteLocal = config("stage_audio_on_projector") === "true";
+          await this.viewer?.model?.speak(speak.audioBuffer, speak.screenplay, {
+            muted: muteLocal,
+          });
+          this.setChatSpeaking?.(false);
+          this.isAwake() ? this.updateAwake() : null;
+        } else if (speak.browserTtsText) {
+          this.setChatSpeaking?.(true);
+          this.viewer?.model?.playEmotion(speak.screenplay.expression);
+          stageSync.broadcastVrmEmotion(speak.screenplay.expression);
+          await speakWithBrowserTTS(speak.browserTtsText, "id-ID");
+          this.setChatSpeaking?.(false);
           this.isAwake() ? this.updateAwake() : null;
         }
       } while (this.speakJobs.size() > 0);
@@ -357,18 +449,116 @@ export class Chat {
         if (!this.reader?.closed) {
           await this.reader?.cancel();
         }
-        // this.reader = null;
-        // this.stream = null;
         console.debug("finished cancelling");
       }
+      for (const r of this.readers) {
+        try {
+          await r.cancel();
+        } catch {
+          // ignore already closed reader
+        }
+      }
+      this.readers = [];
     } catch (e: any) {
       console.error(e.toString());
     }
 
-    // TODO if llm type is llama.cpp, we can send /stop message here
+    // Abort any in-flight TTS requests
+    this.activeTtsControllers.forEach((ctrl) => {
+      try {
+        ctrl.abort();
+      } catch {
+        // ignore
+      }
+    });
+    this.activeTtsControllers.clear();
+
     this.ttsJobs.clear();
     this.speakJobs.clear();
-    // TODO stop viewer from speaking
+
+    // Stop active Video Avatar fetch & playback back to idle
+    this.videoAvatar.stop();
+
+    // Stop active 3D VRM audio & lip-sync immediately
+    this.viewer?.model?.stopSpeaking();
+
+    // Stop browser SpeechSynthesis if active
+    stopBrowserTTS();
+
+    // Notify /stage projector to stop immediately
+    stageSync.broadcastStop();
+
+    this.setChatSpeaking?.(false);
+    this.setChatProcessing?.(false);
+  }
+
+  /**
+   * Speaks pre-written MC segment text directly (bypassing the LLM) through either:
+   * 1) Pre-recorded audio file (optional `audioUrl`) in 3D VRM mode for zero-latency offline playback, or
+   * 2) Active avatar pipeline (Video Avatar `/speak` or 3D VRM TTS `edge_tts`).
+   */
+  public async speakDirect(
+    scriptedText: string,
+    options?: { audioUrl?: string },
+  ) {
+    const trimmed = scriptedText.trim();
+    if (!trimmed) return;
+
+    await this.interrupt();
+    await wait(0);
+
+    if (typeof window !== "undefined") {
+      (window as any).chatvrm_latency_tracker = {
+        start: +Date.now(),
+        active: true,
+      };
+    }
+
+    const streamIdx = this.currentStreamIdx;
+    this.updateAwake();
+
+    // If a pre-recorded audio file is available and Video Avatar isn't active, play it directly with VRM lip-sync
+    if (options?.audioUrl && !this.videoAvatar.isActive() && config("tts_muted") !== "true") {
+      try {
+        const res = await fetch(options.audioUrl);
+        const contentType = res.headers.get("content-type") || "";
+        if (res.ok && contentType.startsWith("audio/")) {
+          const audioBuffer = await res.arrayBuffer();
+          if (audioBuffer.byteLength > 0 && streamIdx === this.currentStreamIdx) {
+            const [screenplay] = textsToScreenplay([trimmed]);
+            this.speakJobs.enqueue({
+              audioBuffer,
+              screenplay,
+              streamIdx,
+            });
+            return;
+          }
+        }
+      } catch {
+        // Fall through cleanly to TTS / Video Avatar synthesis
+      }
+    }
+
+    // Split scripted text into sentences while preserving the leading [emotion] tag
+    const tagMatch = trimmed.match(/^(\[[^\]]+\])\s*/);
+    const leadingTag = tagMatch ? tagMatch[1] : "[happy]";
+    const body = tagMatch ? trimmed.slice(tagMatch[0].length) : trimmed;
+    const rawSentences = body
+      .split(/(?<=[.!?。！？])\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const taggedSentences = (rawSentences.length > 0 ? rawSentences : [body]).map(
+      (s, idx) => (idx === 0 || !s.startsWith("[") ? `${leadingTag} ${s}` : s),
+    );
+    const screenplays = textsToScreenplay(taggedSentences);
+    for (const screenplay of screenplays) {
+      if (streamIdx !== this.currentStreamIdx) break;
+      this.ttsJobs.enqueue({
+        screenplay,
+        streamIdx,
+      });
+    }
   }
 
   // this happens either from text or from voice / whisper completion
@@ -649,8 +839,22 @@ export class Chat {
 
     try {
       switch (config("tts_backend")) {
-        case "none": {
+        case "none":
+        case "browser_tts": {
           return null;
+        }
+        case "edge_tts": {
+          const ctrl = new AbortController();
+          this.activeTtsControllers.add(ctrl);
+          try {
+            const voice = await edgeTTS(talk.message, ctrl.signal);
+            if (rvcEnabled) {
+              return await this.handleRvc(voice.audio);
+            }
+            return voice.audio;
+          } finally {
+            this.activeTtsControllers.delete(ctrl);
+          }
         }
         case "elevenlabs": {
           const voiceId = config("elevenlabs_voiceid");

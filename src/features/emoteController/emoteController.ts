@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { VRM, VRMExpressionPresetName } from "@pixiv/three-vrm";
 import { ExpressionController } from "./expressionController";
+import { LipSyncVowels } from "@/features/lipSync/lipSyncAnalyzeResult";
 
 /**
  * 感情表現としてExpressionとMotionを操作する為のクラス
@@ -19,6 +20,10 @@ export class EmoteController {
 
   public lipSync(preset: VRMExpressionPresetName | string, value: number) {
     this._expressionController.lipSync(preset, value);
+  }
+
+  public lipSyncVowels(vowels: LipSyncVowels) {
+    this._expressionController.lipSyncVowels(vowels);
   }
 
   public update(delta: number) {

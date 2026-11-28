@@ -2,14 +2,16 @@ const fs = require('fs');
 const fg = require('fast-glob');
 const path = require('path');
 
-const ROOT = path.join(__dirname, './../public');
+const ROOT = path.join(__dirname, './../public').replace(/\\/g, '/');
 
-const bgImages = fg.globSync(ROOT+"/bg/**/bg-*.jpg", {dot: true}).map((p) => p.split(ROOT)[1]);
-const vrmList = fg.globSync(ROOT+"/vrm/**/*.vrm", {dot: true}).map((p) => p.split(ROOT)[1]);
-const speechT5SpeakerEmbeddingsList = fg.globSync(ROOT+"/speecht5_speaker_embeddings/**/*.bin", {dot: true}).map((p) => p.split(ROOT)[1]);
+const toPublicPath = (p) => p.replace(/\\/g, '/').slice(ROOT.length);
+
+const bgImages = fg.globSync(`${ROOT}/bg/**/bg-*.jpg`, {dot: true}).map(toPublicPath);
+const vrmList = fg.globSync(`${ROOT}/vrm/**/*.vrm`, {dot: true}).map(toPublicPath);
+const speechT5SpeakerEmbeddingsList = fg.globSync(`${ROOT}/speecht5_speaker_embeddings/**/*.bin`, {dot: true}).map(toPublicPath);
 const animationList = [].concat(
-  fg.globSync(ROOT+"/animations/**/*.vrma", {dot: true}).map((p) => p.split(ROOT)[1]),
-  fg.globSync(ROOT+"/animations/**/*.fbx", {dot: true}).map((p) => p.split(ROOT)[1])
+  fg.globSync(`${ROOT}/animations/**/*.vrma`, {dot: true}).map(toPublicPath),
+  fg.globSync(`${ROOT}/animations/**/*.fbx`, {dot: true}).map(toPublicPath)
 );
 
 let str = "";
